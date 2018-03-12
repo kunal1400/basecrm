@@ -109,7 +109,7 @@ class rdc
                 $this->read_and_process_email($lead_from);
             }
         }
-        sleep(1);
+    sleep(1);
     }
 
 
@@ -313,7 +313,7 @@ class rdc
         fclose($forwarder_file);
         $resp = '<?xml version="1.0" encoding="UTF-8"?>
                   <Response>
-                      <Pause length="3"/>
+                      <Pause length="1"/>
                       <Gather action="' . $this->base_domian_path . $this->twilio_gather_handler_file . '" timeout="10" numDigits="1">
                           <Say voice="alice">Please press 1 to forward this call to new lead, or press any key to cancel</Say>
                       </Gather>
