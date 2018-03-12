@@ -71,7 +71,6 @@ class rdc
     public $twilio_forwarder_file = "twilio/forwarder.xml";
     public $twilio_gather_file = "twilio/twilio_gather.xml";
     public $twilio_gather_handler_file = "twilio/twilio_gather_handler.php";
-    private $db_con;
     private $debug = true;
     private $execution_start_time;
     private $email_check_from_date;
@@ -81,7 +80,6 @@ class rdc
     {
         $this->debug();
         $this->load();
-        //$this->connect_database();
         $this->init();
     }
 
@@ -90,7 +88,6 @@ class rdc
         @session_start();
         date_default_timezone_set('US/Arizona');
         $this->execution_start_time = time();
-        //$this->email_check_from_date = "01 Nov 2016";
         $this->email_check_from_date = date('d M Y', $this->execution_start_time);
 
     }
@@ -99,7 +96,6 @@ class rdc
     {
         $now_exc = time();
         if ($this->execution_start_time + 57 < $now_exc) {
-            //echo "<div>" . "Executed:  startwhile(true)$this->execution_start_time . ",  end:" . $now_exc . "</div>";
             echo "executed start:".$start_exc." end:".$now_exc ;
             die();
         }
@@ -109,7 +105,7 @@ class rdc
                 $this->read_and_process_email($lead_from);
             }
         }
-    sleep(1);
+        sleep(1);
     }
 
 
@@ -120,14 +116,12 @@ class rdc
             "app_name" => "Bravo",
             "from" => "+16023131343",
             "to" => "+14805256665",
-            "alt_number" => "+16024225444",
             "source_id" => "621827"
         ),
         "Alpha" => array(
             "app_name" => "Alpha",
             "from" => "+14805257949",
             "to" => "+14805256665",
-            "alt_number" => "+16024225444",
             "source_id" => "621826"
         )
     );
@@ -151,31 +145,14 @@ class rdc
         $data_array['source_id'] = $use_domain_set["source_id"];
         $this->add_ringcentral($data_array['mobile'], $data_array['first_name'], $data_array['last_name'], $data_array['email']);
         $this->twilio_send_sms($use_domain_set["from"], $use_domain_set["to"], str_replace("\r\n", ", ", $data_text));
+
+        // Uncomment this line if you want to send the emails, currently the emails are not valid.
         // $this->send_email($this->text_to_sms_send_to, "New Lead " . $use_domain_set["app_name"], $data_text);
 
         $Arizona = (int)date('H');
         if ($Arizona <= 20 and $Arizona >= 8) {
-            //if (strpos($data_array['custom_fields']['Inquiry Comment'], 'lease') == false or strpos($data_array['custom_fields']['Inquiry Comment'], 'rent') == false) {
-                //if ($property_value > 200000) {
-                    //if ($use_domain_set["app_name"] == "Bravo" && $data_array['zip'] == $lead_from["post_rule_code"]) {
-                       //$use_domain_set = $this->domain_set["Charlie"];
-                       //$this->twilio_make_call($use_domain_set["from"], $use_domain_set["alt_number"], $data_array['mobile']);
-                       $this->twilio_make_call($use_domain_set["from"], $use_domain_set["to"], $data_array['mobile']);
-                    // } else {
-                    //     $this->twilio_make_call($use_domain_set["from"], $use_domain_set["to"], $data_array['mobile']);
-                    // }
-                // } else {
-                //     $this->twilio_send_sms($use_domain_set["from"], $use_domain_set["alt_number"], str_replace("\r\n", ", ", $data_text));
-                //     $this->send_email("kellymichaelshomes@gmail.com", "New Lead " . $use_domain_set["app_name"], $data_text);
-                //     $this->twilio_make_call($use_domain_set["from"], $use_domain_set["alt_number"], $data_array['mobile']);
-                // }
-            //}
+          $this->twilio_make_call($use_domain_set["from"], $use_domain_set["to"], $data_array['mobile']);
         }
-        // var_dump($data_array);
-        // var_dump($use_domain_set);
-       //$base_crm_id = $this->save_to_basecrm($data_array);
-       //$this->saveLead($data_array, $base_crm_id);
-
     }
 
     private function read_and_process_email($lead_from)
@@ -241,14 +218,6 @@ class rdc
         }
         imap_expunge($inbox);
         imap_close($inbox);
-        //sleep(1);
-    }
-
-    private function save_to_basecrm($data_array)
-    {
-        $client = new \BaseCRM\Client($this->base_crm_config);
-        $createdLead = $client->leads->create($data_array);
-        return $createdLead['id'];
     }
 
     private function load()
@@ -406,38 +375,6 @@ class rdc
         }
     }
 
-    private function getLead($phone)
-    {
-        $phone = ltrim(trim($phone), "+1");
-        $phone = preg_replace('/[^0-9]/', '', $phone);
-        $sth = $this->db_con->prepare("SELECT * FROM leads where phone=:phone limit 1");
-        $sth->bindParam(':phone', $phone);
-        $sth->execute();
-        $rows = $sth->fetch(PDO::FETCH_ASSOC);
-        if ($sth->rowCount() == 1) {
-            return $rows;
-        } else {
-            return false;
-        }
-    }
-
-    private function saveLead($data_array, $rid)
-    {
-        $first_name = $data_array['first_name'];
-        $last_name = $data_array['last_name'];
-        $email = $data_array['email'];
-        $mobile = preg_replace('/[^0-9]/', '', $data_array['mobile']);
-        $data = json_encode($data_array);
-        $statement = $this->db_con->prepare("INSERT INTO leads (fname, lname, email, phone, data, resource_id ) VALUES (:fname, :lname, :email, :phone, :data, :resource_id )");
-        $statement->bindParam(":fname", $first_name);
-        $statement->bindParam(":lname", $last_name);
-        $statement->bindParam(":email", $email);
-        $statement->bindParam(":phone", $mobile);
-        $statement->bindParam(":data", $data);
-        $statement->bindParam(":resource_id", $rid);
-        $count = $statement->execute();
-    }
-
     public function twilio_gather_handler($number)
     {
         ?>
@@ -451,40 +388,4 @@ class rdc
         <?php
     }
 
-    public function receive_sms($From, $To, $Body)
-    {
-        $client = new \BaseCRM\Client($this->base_crm_config);
-        $lead = $this->getLead($From);
-        $msg = '';
-        $data = json_decode($lead['data'], true);
-        $output = preg_replace('/[^0-9]/', '', $data['description']);
-        if ($output < 175000) {
-            $body = strtolower($Body);
-            if (isset($lead["resource_id"]) and $msg != '') {
-                $note = array();
-                $note['resource_type'] = 'lead';
-                $note['resource_id'] = (int)$lead['resource_id'];
-                $note['content'] = 'Auto Reply: ' . $msg;
-                $note['type'] = 'note';
-                $client->notes->create($note);
-            }
-
-        }
-        $Body = "Customer Reply From {$From} : " . $Body;
-        if (isset($lead["fname"])) {
-            $name = $lead["fname"] . " " . $lead["lname"];
-            $Body = "Message From {$name}: " . $Body;
-        }
-        if (isset($To)) {
-            $this->twilio_send_sms($this->$From, $this->$To, $Body);
-            if (isset($lead["resource_id"])) {
-                $note = array();
-                $note['resource_type'] = 'lead';
-                $note['resource_id'] = (int)$lead['resource_id'];
-                $note['content'] = $Body;
-                $note['type'] = 'note';
-                $client->notes->create($note);
-            }
-        }
-    }
 }
